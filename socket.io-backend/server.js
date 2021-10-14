@@ -1,20 +1,34 @@
 const io = require('socket.io')();
 
-// const testMessage = {
-//   _id: 3,
-//   text: 'Hello developer',
-//   createdAt: new Date(),
-//   user: {
-//     _id: 2,
-//     name: 'React Native',
-//     avatar: 'https://placeimg.com/140/140/any',
-//   },
-// };
+
+let currentUserId = 2;
+let currentMessageId = 1;
+const userIds = {};
+
+const createMessage = (userId, message) => {
+  return {
+    _id: currentMessageId++,
+    text: message,
+    createdAt: new Date(),
+    user: {
+      _id: userId,
+      name: 'Test User',
+      avatar: 'https://placeimg.com/140/140/any',
+    },
+  };
+}
+
 
 io.on('connection', (socket) => {
   console.log("a user is connected")
-  socket.on('message', message => {
-    io.emit("message", message)
+  console.log(socket.id)
+  userIds[socket.id] = currentUserId++;
+
+  socket.on('message', textMessage => {
+    const userId = userIds[socket.id];
+    const message = createMessage(userId, textMessage);
+    console.log(message);
+    socket.broadcast.emit("message", message);
   })
 })
 
