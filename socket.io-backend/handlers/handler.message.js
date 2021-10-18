@@ -1,25 +1,25 @@
 let currentMessageId = 1;
 
-const createMessage = (userId, message) => {
+function createMessage(user, messageText) {
   return {
     _id: currentMessageId++,
-    text: message,
+    text: messageText,
     createdAt: new Date(),
     user: {
-      _id: userId,
-      name: 'Test User',
-      avatar: 'https://placeimg.com/140/140/any',
-    },
+      _id: user.userId,
+      name: user.username,
+      avatar: user.avatar
+    }
   };
 }
 
-const handleMessage = (socket, userIds) => {
-  socket.on('message', textMessage => {
-    const userId = userIds[socket.id];
-    const message = createMessage(userId, textMessage);
+function handleMessage(socket, users) {
+  socket.on("message", messageText => {
+    const user = users[socket.id];
+    const message = createMessage(user, messageText);
     console.log(message);
     socket.broadcast.emit("message", message);
-  })
-};
+  });
+}
 
 module.exports = { handleMessage };
