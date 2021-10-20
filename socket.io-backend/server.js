@@ -10,39 +10,62 @@ const createUserAvatarUrl = () => {
   return `https://placeimg.com/${rand1}/${rand2}/any`
 }
 
-const userOnline = () => {
+function createUsersOnline() {
   const values = Object.values(users);
-  const onlyWithUsername = values.filter(u => u.username !== undefined);
-  return onlyWithUsername;
+  const onlyWithUsernames = values.filter(u => u.username !== undefined);
+  return onlyWithUsernames;
 }
 
 io.on("connection", socket => {
-  console.log("a user is connected")
-  console.log(socket.id)
+  console.log("a user connected!");
+  console.log(socket.id);
   users[socket.id] = { userId: uuid.v1() };
-
   socket.on("disconnect", () => {
     delete users[socket.id];
-    io.emit("action", { type: "user_online", data: userOnline() })
+    io.emit("action", { type: "users_online", data: createUsersOnline() });
   });
-
   socket.on("action", action => {
     switch (action.type) {
       case "server/join":
-        console.log(action.data)
+        console.log("Got join event", action.data);
         users[socket.id].username = action.data;
         users[socket.id].avatar = createUserAvatarUrl();
         io.emit("action", {
-          type: "user_online",
-          data: userOnline()
-        })
-        socket.emit("action", { type: "self_user", data: users[socket.id] })
+          type: "users_online",
+          data: createUsersOnline()
+        });
+        socket.emit("action", { type: "self_user", data: users[socket.id] });
         break;
-      case "server/private-message":
-        console.log(action.data)
+      case "server/private_message":
+        const conversationId = action.data.conversationId;
+        const from = users[socket.id].userId;
+        const userValues = Object.values(users);
+        const socketIds = Object.keys(users);
+        for (let i = 0; i < userValues.length; i++) {
+          if (userValues[i].userId === conversationId) {
+
+            const socketId = socketIds[i];
+            console.log("socketId :", socketId);
+
+            console.log("userValues[i].userId:", userValues[i].userId);
+            console.log("conversationId :", conversationId);
+            console.log("users :", users[socketId]);
+
+
+            io.sockets.to(socketId).emit("action", {
+              type: "private_message",
+              data: {
+                ...action.data,
+                conversationId: from
+              }
+            });
+            break;
+          }
+        }
+        break;
     }
-  })
-})
+  });
+});
 
 
 io.listen(3001)
